@@ -422,9 +422,21 @@
       display: grid;
     }
 
+    body:not(.is-commander) .commander-only,
+    body:not(.is-appsec) .appsec-only,
+    body:not(.is-legal) .legal-only {
+      display: none !important;
+    }
+
     body.is-commander .analyst-only,
+    body.is-commander .appsec-only,
+    body.is-commander .legal-only,
     body.is-appsec .analyst-only,
-    body.is-legal .analyst-only {
+    body.is-appsec .commander-only,
+    body.is-appsec .legal-only,
+    body.is-legal .analyst-only,
+    body.is-legal .commander-only,
+    body.is-legal .appsec-only {
       display: none !important;
     }
 
@@ -2515,22 +2527,177 @@
       overflow: auto;
     }
 
+    .inbox-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
     .inbox-alert {
+      --risk-color: #10B981;
+      --risk-bg: rgba(16, 185, 129, .08);
+      --risk-border: rgba(16, 185, 129, .38);
+      position: relative;
       width: 100%;
+      min-height: 94px;
       text-align: left;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(5, 9, 16, .55);
+      padding: 14px 16px 14px 20px;
+      border: 1px solid var(--risk-border);
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--risk-bg), rgba(5, 9, 16, .58) 34%);
       color: var(--text);
       cursor: pointer;
       display: grid;
-      gap: 5px;
+      grid-template-columns: 86px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .inbox-alert::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 4px;
+      border-radius: 0 999px 999px 0;
+      background: var(--risk-color);
+      box-shadow: 0 0 22px var(--risk-color);
+    }
+
+    .inbox-alert.risk-high,
+    .inbox-drawer-summary.risk-high {
+      --risk-color: #F87171;
+      --risk-bg: rgba(248, 113, 113, .1);
+      --risk-border: rgba(248, 113, 113, .46);
+    }
+
+    .inbox-alert.risk-medium,
+    .inbox-drawer-summary.risk-medium {
+      --risk-color: #EAB308;
+      --risk-bg: rgba(234, 179, 8, .1);
+      --risk-border: rgba(234, 179, 8, .42);
+    }
+
+    .inbox-alert.risk-low,
+    .inbox-drawer-summary.risk-low {
+      --risk-color: #10B981;
+      --risk-bg: rgba(16, 185, 129, .08);
+      --risk-border: rgba(16, 185, 129, .36);
     }
 
     .inbox-alert.active {
-      border-color: rgba(255, 102, 115, .65);
-      background: rgba(255, 102, 115, .08);
+      border-color: var(--risk-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--risk-color) 20%, transparent), 0 20px 54px rgba(0, 0, 0, .34);
+    }
+
+    .inbox-time {
+      color: var(--risk-color);
+      font: 700 11px/1.2 "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .inbox-content {
+      min-width: 0;
+      display: grid;
+      gap: 7px;
+    }
+
+    .inbox-title-row,
+    .inbox-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .inbox-title-row b {
+      color: #F5F5F5;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .risk-badge,
+    .inbox-row-action {
+      width: fit-content;
+      border: 1px solid var(--risk-border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: var(--risk-color);
+      background: var(--risk-bg);
+      font: 700 10px/1 "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .inbox-alert .status-badge {
+      padding: 4px 8px;
+      font-size: 10px;
+      border-color: rgba(255, 255, 255, .14);
+      color: rgba(235, 235, 235, .72);
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .status-badge.status-investigating,
+    .status-badge.status-escalated,
+    .status-badge.status-view-handoff,
+    .status-badge.status-request-update,
+    .status-badge.status-assign-owner {
+      border-color: rgba(234, 179, 8, .48);
+      color: #EAB308;
+      background: rgba(234, 179, 8, .1);
+    }
+
+    .status-badge.status-assigned,
+    .status-badge.status-resolved,
+    .status-badge.status-acknowledge {
+      border-color: rgba(16, 185, 129, .48);
+      color: #10B981;
+      background: rgba(16, 185, 129, .1);
+    }
+
+    .status-badge.status-dismissed {
+      border-color: rgba(248, 113, 113, .42);
+      color: #F87171;
+      background: rgba(248, 113, 113, .1);
+    }
+
+    .inbox-meta span {
+      color: rgba(235, 235, 235, .56);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .inbox-detail {
+      color: rgba(235, 235, 235, .7);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .inbox-row-action {
+      align-self: center;
+    }
+
+    .inbox-drawer-summary {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--risk-border);
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--risk-bg), rgba(255, 255, 255, .025));
+    }
+
+    .inbox-drawer-summary strong {
+      color: #F5F5F5;
+    }
+
+    .inbox-drawer-summary > span:last-child {
+      color: rgba(235, 235, 235, .72);
+      line-height: 1.5;
     }
 
     .drawer {
@@ -3645,6 +3812,18 @@
       box-shadow: none;
     }
 
+    body.is-logged-in .inbox-alert {
+      border-color: var(--risk-border);
+      background:
+        linear-gradient(90deg, var(--risk-bg), rgba(9, 12, 12, .86) 36%) padding-box,
+        linear-gradient(115deg, var(--risk-border), rgba(255, 255, 255, .055)) border-box;
+    }
+
+    body.is-logged-in .inbox-alert.active {
+      border-color: var(--risk-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--risk-color) 18%, transparent), 0 20px 54px rgba(0, 0, 0, .34);
+    }
+
     body.is-logged-in .panel:hover,
     body.is-logged-in .card:hover,
     body.is-logged-in .command-card:hover,
@@ -3740,6 +3919,26 @@
     body.is-legal .left {
       position: sticky;
       top: 16px;
+    }
+
+    body.is-logged-in:not([data-active-page="warroom"]) .left {
+      display: none;
+    }
+
+    body.is-logged-in:not([data-active-page="warroom"]) .dashboard {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.is-logged-in:not([data-active-page="warroom"]) .right {
+      display: none;
+    }
+
+    body.is-logged-in[data-active-page="evidence"] .dashboard {
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    }
+
+    body.is-logged-in[data-active-page="evidence"] .right {
+      display: grid;
     }
 
     body.is-logged-in h2,
@@ -4031,6 +4230,16 @@
 
       body.is-logged-in .incident-command {
         grid-template-columns: 1fr;
+      }
+
+      .inbox-alert {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .inbox-time,
+      .inbox-row-action {
+        justify-self: start;
       }
 
       .drawer-card {

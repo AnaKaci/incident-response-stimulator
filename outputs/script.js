@@ -1559,20 +1559,67 @@
       }));
     }
 
+    function inboxRiskMeta(severity) {
+      const level = String(severity || "LOW").toUpperCase();
+      if (level === "HIGH") return { className: "risk-high", label: "High risk", score: 86 };
+      if (level === "MEDIUM") return { className: "risk-medium", label: "Medium risk", score: 58 };
+      return { className: "risk-low", label: "Low risk", score: 24 };
+    }
+
+    function inboxStatusClass(status) {
+      return `status-${String(status || "NEW").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    }
+
+    function renderRiskListRow({ id, time, source, title, asset, detail, status, risk, selected = false, actionLabel = "Review", dataName }) {
+      return `<button class="inbox-alert ${risk.className} ${selected ? "active" : ""}" type="button" ${dataName}="${id}" data-risk="${risk.label}">
+        <span class="inbox-time">${time}</span>
+        <span class="inbox-content">
+          <span class="inbox-title-row"><b>${title}</b><span class="risk-badge">${risk.label}</span><span class="status-badge ${inboxStatusClass(status)}">${status}</span></span>
+          <span class="inbox-meta"><span>${source}</span><span>${asset}</span></span>
+          <span class="inbox-detail">${detail}</span>
+        </span>
+        <span class="inbox-row-action">${actionLabel}</span>
+      </button>`;
+    }
+
     function renderSocInbox() {
       if (!els.socInbox) return;
+      els.socInbox.className = "inbox-list";
       if (state.role === "Incident Commander") {
         renderCommanderUpdates();
         return;
       }
-      els.socInbox.innerHTML = inboxAlerts.map(alert => `<button class="inbox-alert ${state.selectedInbox === alert.id ? "active" : ""}" type="button" data-alert="${alert.id}">
-        <b>${alert.sev} - ${alert.title}</b><span>${alert.asset}</span><span>Status: ${state.inboxStatuses[alert.id] || "NEW"}</span><span>${alert.detail}</span>
-      </button>`).join("");
+      const sortedAlerts = [...inboxAlerts].sort((a, b) => inboxRiskMeta(b.sev).score - inboxRiskMeta(a.sev).score);
+      els.socInbox.innerHTML = sortedAlerts.map(alert => {
+        const risk = inboxRiskMeta(alert.sev);
+        const status = state.inboxStatuses[alert.id] || "NEW";
+        return renderRiskListRow({
+          id: alert.id,
+          time: alert.timestamp,
+          source: alert.rule,
+          title: alert.title,
+          asset: alert.asset,
+          detail: alert.detail,
+          status,
+          risk,
+          selected: state.selectedInbox === alert.id,
+          actionLabel: "Open",
+          dataName: "data-alert"
+        });
+      }).join("");
       els.socInbox.querySelectorAll("button").forEach(button => {
         button.addEventListener("click", () => {
           const alert = inboxAlerts.find(item => item.id === button.dataset.alert);
+          const risk = inboxRiskMeta(alert.sev);
+          const status = state.inboxStatuses[alert.id] || "NEW";
           state.selectedInbox = alert.id;
-          openDrawer(`${alert.sev} - ${alert.title}`, `<div class="report-section"><strong>Status</strong><span>${state.inboxStatuses[alert.id] || "NEW"}</span></div>
+          openDrawer(`${alert.title}`, `<div class="inbox-drawer-summary ${risk.className}">
+              <span class="risk-badge">${risk.label}</span>
+              <span class="status-badge ${inboxStatusClass(status)}">${status}</span>
+              <strong>${alert.asset}</strong>
+              <span>${alert.detail}</span>
+            </div>
+            <div class="report-section"><strong>Status</strong><span>${status}</span></div>
             <div class="report-section"><strong>Source IP</strong><span>${alert.sourceIp}</span></div>
             <div class="report-section"><strong>Destination</strong><span>${alert.destination}</span></div>
             <div class="report-section"><strong>Rule</strong><span>${alert.rule}</span></div>
@@ -1595,18 +1642,35 @@
 
     function renderCommanderUpdates() {
       const updates = [
-        ["09:12", "SOC ANALYST", "Possible exploitation detected", `Confidence: ${Math.round(commanderConfidence())}%`, "View handoff"],
-        ["09:15", "DATABASE TEAM", "Unusual read volume confirmed", "Impact assessment pending", "Request update"],
-        ["09:17", "APPSEC", "Vulnerable endpoint identified", state.patchTested ? "Patch tested" : "Patch ETA: 12 minutes", "Assign owner"],
-        ["09:19", "CUSTOMER SUPPORT", "3 customer reports received", "Customer impact not confirmed", "Acknowledge"]
+        { time: "09:12", source: "SOC ANALYST", title: "Possible exploitation detected", status: `Confidence: ${Math.round(commanderConfidence())}%`, action: "View handoff", risk: "HIGH", detail: "WAF and DB signals indicate possible customer-portal exploitation." },
+        { time: "09:15", source: "DATABASE TEAM", title: "Unusual read volume confirmed", status: "Impact assessment pending", action: "Request update", risk: "HIGH", detail: "Read volume exceeds baseline and may affect customer records." },
+        { time: "09:17", source: "APPSEC", title: "Vulnerable endpoint identified", status: state.patchTested ? "Patch tested" : "Patch ETA: 12 minutes", action: "Assign owner", risk: "MEDIUM", detail: "Engineering has located the likely vulnerable route." },
+        { time: "09:19", source: "CUSTOMER SUPPORT", title: "3 customer reports received", status: "Customer impact not confirmed", action: "Acknowledge", risk: "MEDIUM", detail: "Support reports may indicate customer-visible data exposure." }
       ];
-      els.socInbox.innerHTML = updates.map((item, index) => `<button class="inbox-alert" type="button" data-command-update="${index}">
-        <b>${item[0]} ${item[1]}</b><span>${item[2]}</span><span>${item[3]}</span><span>${item[4]}</span>
-      </button>`).join("");
+      els.socInbox.className = "inbox-list";
+      els.socInbox.innerHTML = updates.map((item, index) => renderRiskListRow({
+        id: String(index),
+        time: item.time,
+        source: item.source,
+        title: item.title,
+        asset: item.status,
+        detail: item.detail,
+        status: item.action,
+        risk: inboxRiskMeta(item.risk),
+        actionLabel: "Open",
+        dataName: "data-command-update"
+      })).join("");
       els.socInbox.querySelectorAll("[data-command-update]").forEach(button => button.addEventListener("click", () => {
         const item = updates[Number(button.dataset.commandUpdate)];
-        openDrawer(`${item[1]} update`, `<div class="report-section"><strong>Update</strong><span>${item[2]}</span></div>
-          <div class="report-section"><strong>Status</strong><span>${item[3]}</span></div>
+        const risk = inboxRiskMeta(item.risk);
+        openDrawer(`${item.source} update`, `<div class="inbox-drawer-summary ${risk.className}">
+            <span class="risk-badge">${risk.label}</span>
+            <span class="status-badge">${item.action}</span>
+            <strong>${item.title}</strong>
+            <span>${item.detail}</span>
+          </div>
+          <div class="report-section"><strong>Update</strong><span>${item.title}</span></div>
+          <div class="report-section"><strong>Status</strong><span>${item.status}</span></div>
           <div class="actions">
             <button class="btn primary" type="button" data-update-action="ack">Acknowledge</button>
             <button class="btn" type="button" data-update-action="more">Request update</button>
@@ -1614,7 +1678,7 @@
           </div>`);
         document.querySelectorAll("[data-update-action]").forEach(actionButton => actionButton.addEventListener("click", () => {
           const action = actionButton.dataset.updateAction;
-          logAction(`${action === "ack" ? "Acknowledged" : action === "more" ? "Requested update for" : "Assigned owner for"} ${item[1]} handoff`, "Incident Commander");
+          logAction(`${action === "ack" ? "Acknowledged" : action === "more" ? "Requested update for" : "Assigned owner for"} ${item.source} handoff`, "Incident Commander");
           if (action === "more") state.evidence = clamp(state.evidence + 4, 0, 100);
           if (action === "owner") state.score += 4;
           els.eventDrawer.classList.remove("open");
@@ -2806,6 +2870,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
         document.body.classList.remove("is-commander");
         document.body.classList.remove("is-appsec");
         document.body.classList.remove("is-legal");
+        delete document.body.dataset.activePage;
         els.loginPanel.innerHTML = `
           <section class="landing-card" aria-label="Choose incident response workspace">
             <h2>Choose your role</h2>
@@ -3307,6 +3372,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       if (!state.loggedIn) page = "roles";
       if (state.loggedIn && page === "roles") page = roleAccess[state.role].home;
       if (state.loggedIn && !roleAccess[state.role].pages.includes(page)) page = roleAccess[state.role].home;
+      document.body.dataset.activePage = page;
       document.querySelectorAll(".nav-btn").forEach(button => {
         const allowed = state.loggedIn && roleAccess[state.role].pages.includes(button.dataset.page);
         button.classList.toggle("is-hidden-for-role", !allowed);
@@ -3323,7 +3389,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       if (els.liveDbLabel) els.liveDbLabel.textContent = state.role === "Legal/Compliance" ? "Regulatory status" : "DB audit";
       if (els.liveResponderLabel) els.liveResponderLabel.textContent = state.role === "Legal/Compliance" ? "Communications" : "Responder action";
       if (els.inboxTitle) els.inboxTitle.textContent = state.role === "Incident Commander" ? "Incident Updates" : "SOC Inbox";
-      if (els.inboxIntro) els.inboxIntro.textContent = state.role === "Incident Commander" ? "Team briefings from SOC, DB, AppSec, Support, and stakeholders. Acknowledge, request updates, or assign owners." : "Alert fatigue simulation: only one alert is the incident. False positives waste time and increase attacker progress.";
+      if (els.inboxIntro) els.inboxIntro.textContent = state.role === "Incident Commander" ? "Risk-coded team briefings from SOC, DB, AppSec, Support, and stakeholders. Open each update to acknowledge, request more detail, or assign owners." : "Risk-coded alert queue. Open high-risk items first, investigate supporting signals, and dismiss false positives only when evidence supports it.";
       if (els.evidenceGameTitle) els.evidenceGameTitle.textContent = state.role === "AppSec Engineer" ? "AppSec Evidence Chain" : "Evidence Collection Game";
       if (els.evidenceGameTitle && state.role === "Legal/Compliance") els.evidenceGameTitle.textContent = "Compliance Decision Chain";
       if (els.evidenceTimelineTitle) els.evidenceTimelineTitle.textContent = state.role === "Legal/Compliance" ? "Compliance Evidence Timeline" : "Evidence Timeline";
