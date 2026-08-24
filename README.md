@@ -18,15 +18,15 @@ Open this file in a browser:
 outputs/index.html
 ```
 
-No build step is required. The simulator is a standalone HTML/CSS/JavaScript app.
+No build step is required. The simulator is a static HTML/CSS/JavaScript app; keep `outputs/index.html`, `outputs/styles.css`, `outputs/script.js`, `outputs/lightning-background.js`, and `outputs/roles/` together.
 
 ## GitHub Pages
 
-The root `index.html` redirects to `outputs/index.html`, so GitHub Pages can serve the project from the repository root.
+The root `index.html` also serves the app, so GitHub Pages can serve the project from the repository root.
 
 ## Collaboration Notes
 
-- Main application file: `outputs/index.html`
+- Main application files: `outputs/index.html`, `outputs/styles.css`, `outputs/script.js`, `outputs/lightning-background.js`, and role partials in `outputs/roles/`
 - Keep changes focused and test the full role flow after editing.
 - Avoid committing local screenshots, temporary files, or browser cache output.
 
