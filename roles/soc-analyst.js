@@ -77,8 +77,32 @@
           </div>
         </section>`,
     incidentFlow: `
-        <div class="page-section active" data-page-section="warroom">
-        <section class="panel briefing analyst-only">
+        <div class="page-section analyst-only waf-alert-page" data-page-section="wafalert">
+        <section class="panel map-panel waf-attack-path">
+          <canvas id="attackMap" aria-label="Animated attack path from attacker to web app, database, SOC, legal, and customers"></canvas>
+          <div class="map-label">
+            <h2>Attack Path</h2>
+            <p class="small" id="mapCaption">SQLi traffic is probing the portal.</p>
+          </div>
+          <div class="attack-badge" id="attackBadge">LIVE EXPLOIT</div>
+          <div class="visual-tools">
+            <div class="view-buttons" id="viewButtons" aria-label="Visual view selector">
+              <button class="view-btn active" type="button" data-view="attack">Attack path</button>
+              <button class="view-btn" type="button" data-view="killchain">Kill chain</button>
+              <button class="view-btn" type="button" data-view="data">Data exposure</button>
+            </div>
+            <div class="node-inspector" id="nodeInspector">
+              <strong>Click a system node</strong>
+              <p class="small">Inspect attacker, WAF, app, database, SOC, or legal/compliance role.</p>
+            </div>
+          </div>
+          <div class="killchain-detail" id="killchainDetail">
+            <strong>Interactive kill chain</strong>
+            <p class="small">Switch to Kill chain, then click Recon, Exploit, Enumerate, Contain, or Recover.</p>
+          </div>
+        </section>
+
+        <section class="panel briefing">
           <div>
             <h2>Phase Briefing</h2>
             <p class="small">Each phase shows what the attacker is doing, what defenders must prove, and what business pressure exists in the real incident.</p>
@@ -87,7 +111,7 @@
           <div class="briefing-grid" id="briefingGrid"></div>
         </section>
 
-        <section class="panel incident analyst-only">
+        <section class="panel incident">
           <div class="incident-head">
             <div>
               <div class="pill-row" id="phaseTags"></div>
@@ -105,7 +129,7 @@
           </div>
         </section>
 
-        <section class="panel simulation-card analyst-only">
+        <section class="panel simulation-card">
           <h2>SOC Terminal</h2>
           <p class="small">Type simulated commands: help, timeline, search ip 198.51.100.24, search user admin, block 198.51.100.24, isolate web-01, snapshot db.</p>
           <div class="soc-terminal">

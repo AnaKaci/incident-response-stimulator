@@ -155,6 +155,7 @@
       selectedLoginRole: null,
       user: null,
       role: "SOC Analyst",
+      wafAlertOpened: false,
       answeredMessages: {},
       selectedEvidence: {},
       collectedEvidence: {},
@@ -564,8 +565,8 @@
     const roleAccess = {
       "SOC Analyst": {
         home: "warroom",
-        pages: ["warroom", "inbox", "evidence", "ai", "approvals", "reportbuilder"],
-        modules: ["Dashboard", "SOC Inbox", "Evidence Center", "AI Copilot", "Approvals", "Report Builder"],
+        pages: ["warroom", "wafalert", "inbox", "evidence", "ai", "approvals", "reportbuilder"],
+        modules: ["Dashboard", "WAF Alert", "SOC Inbox", "Evidence Center", "AI Copilot", "Approvals", "Report Builder"],
         console: ["access granted: SIEM, WAF, HTTP logs", "primary mission: validate alert and preserve evidence", "restricted: legal notification authority"]
       },
       "Incident Commander": {
@@ -934,7 +935,7 @@
         [
           "Validate the WAF alert",
           [
-            ["Open WAF alert", state.inboxStatuses.waf === "INVESTIGATING" || state.inboxStatuses.waf === "ESCALATED"],
+            ["Open WAF alert", state.wafAlertOpened || state.inboxStatuses.waf === "INVESTIGATING" || state.inboxStatuses.waf === "ESCALATED"],
             ["Correlate related HTTP traffic", state.terminalLines.some(line => line.includes("12 events found")) || state.collectedEvidence["E-003"]],
             ["Collect one supporting artifact", Object.keys(state.collectedEvidence).length > 0]
           ]
@@ -1113,7 +1114,7 @@
         {
           title: "Validate the WAF alert",
           text: "Determine whether the WAF alert represents real exploitation or a false positive.",
-          actions: [["Open WAF alert", () => showPage("inbox")], ["Search related traffic", () => runSocCommand("search ip 198.51.100.24")], ["Collect first evidence", () => showPage("evidence")]]
+          actions: [["Open WAF alert", () => showPage("wafalert")], ["Search related traffic", () => runSocCommand("search ip 198.51.100.24")], ["Collect first evidence", () => showPage("evidence")]]
         },
         {
           title: "Determine scope of compromise",
@@ -3372,6 +3373,10 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       if (!state.loggedIn) page = "roles";
       if (state.loggedIn && page === "roles") page = roleAccess[state.role].home;
       if (state.loggedIn && !roleAccess[state.role].pages.includes(page)) page = roleAccess[state.role].home;
+      if (state.loggedIn && state.role === "SOC Analyst" && page === "wafalert" && !state.wafAlertOpened) {
+        state.wafAlertOpened = true;
+        logAction("Opened WAF alert investigation workspace");
+      }
       document.body.dataset.activePage = page;
       document.querySelectorAll(".nav-btn").forEach(button => {
         const allowed = state.loggedIn && roleAccess[state.role].pages.includes(button.dataset.page);
@@ -3762,6 +3767,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       state.patchDeployed = false;
       state.legalAnswer = "";
       state.selectedInbox = "";
+      state.wafAlertOpened = false;
       state.score = 0;
       state.risk = 44;
       state.evidence = 0;

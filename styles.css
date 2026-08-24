@@ -240,6 +240,11 @@
       display: block;
     }
 
+    .waf-alert-page.active {
+      display: grid;
+      gap: 14px;
+    }
+
     h1, h2, h3, p { margin: 0; }
 
     h1 {
@@ -841,6 +846,47 @@
         linear-gradient(rgba(16, 185, 129, .08) 1px, transparent 1px),
         rgba(5, 9, 16, .88);
       background-size: 34px 34px;
+    }
+
+    .waf-alert-page .waf-attack-path {
+      background:
+        radial-gradient(circle at 52% 32%, rgba(16, 185, 129, .16), transparent 20rem),
+        linear-gradient(90deg, rgba(16, 185, 129, .18) 1px, transparent 1px),
+        linear-gradient(rgba(16, 185, 129, .18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+        rgba(5, 5, 5, .94);
+      background-size: auto, 48px 48px, 48px 48px, 12px 12px, 12px 12px, auto;
+      background-position: center, -1px -1px, -1px -1px, -1px -1px, -1px -1px, center;
+    }
+
+    .waf-alert-page .waf-attack-path::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 52% 30%, rgba(16, 185, 129, .22), transparent 24rem),
+        linear-gradient(90deg, rgba(16, 185, 129, .28) 1px, transparent 1px),
+        linear-gradient(rgba(16, 185, 129, .28) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(235, 235, 235, .08) 1px, transparent 1px),
+        linear-gradient(rgba(235, 235, 235, .08) 1px, transparent 1px);
+      background-size: auto, 48px 48px, 48px 48px, 12px 12px, 12px 12px;
+      background-position: center, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+      opacity: .95;
+    }
+
+    .waf-alert-page .waf-attack-path canvas {
+      position: relative;
+      z-index: 1;
+    }
+
+    .waf-alert-page .waf-attack-path .map-label,
+    .waf-alert-page .waf-attack-path .attack-badge,
+    .waf-alert-page .waf-attack-path .visual-tools,
+    .waf-alert-page .waf-attack-path .killchain-detail {
+      z-index: 2;
     }
 
     canvas {
