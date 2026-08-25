@@ -1,0 +1,16 @@
+{
+  "id": "phishing-account-takeover",
+  "title": "Phishing / Account Takeover",
+  "description": "A user reported a suspicious sign-in after interacting with a credential harvesting email.",
+  "difficulty": "Beginner",
+  "category": "Identity Compromise",
+  "complexity": "guided investigation",
+  "environment": "Email gateway, IAM, VPN, cloud mailbox",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "Legal/Compliance"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": false,
+    "persistenceEstablished": false,
+    "attackerIPs": ["203.0.113.77", "198.51.100.82"]
+  }
+}

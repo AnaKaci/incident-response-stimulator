@@ -1,0 +1,16 @@
+{
+  "id": "insider-exfiltration",
+  "title": "Insider Data Exfiltration",
+  "description": "DLP, database, and endpoint events suggest unusual access before an employee departure.",
+  "difficulty": "Advanced",
+  "category": "Insider Threat",
+  "complexity": "evidence-sensitive investigation",
+  "environment": "Endpoint, DLP, database, HR/legal workflow",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "Legal/Compliance"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": true,
+    "persistenceEstablished": false,
+    "attackerIPs": ["10.44.12.88"]
+  }
+}

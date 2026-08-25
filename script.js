@@ -142,6 +142,24 @@
     ];
 
     const state = {
+      scenarioId: "sql-injection",
+      scenarioTitle: "SQL Injection Data Exposure",
+      scenarioStarted: false,
+      difficulty: "Intermediate",
+      scenarioSeed: "sql-injection-2026-0812",
+      playerKnowledge: { initialFacts: [], unknowns: [] },
+      runtimeHypotheses: [],
+      runtimeIocs: [],
+      runtimeAssets: [],
+      runtimeServices: [],
+      runtimeTasks: [],
+      hypothesisOverrides: {},
+      siemQuery: "search src_ip=\"198.51.100.24\"",
+      siemResults: null,
+      selectedSiemEventId: null,
+      evidenceRecords: {},
+      customHypotheses: [],
+      notificationHistory: [],
       phase: 0,
       selected: false,
       activeTab: "",
@@ -398,7 +416,27 @@
       contextMenu: $("contextMenu"),
       recentActions: $("recentActions"),
       pauseSimulationBtn: $("pauseSimulationBtn"),
+      saveExerciseBtn: $("saveExerciseBtn"),
+      resumeExerciseBtn: $("resumeExerciseBtn"),
       demoSpeedSelect: $("demoSpeedSelect"),
+      scenarioCatalog: $("scenarioCatalog"),
+      scenarioDifficulty: $("scenarioDifficulty"),
+      scenarioNavBtn: $("scenarioNavBtn"),
+      siemQueryForm: $("siemQueryForm"),
+      siemQueryInput: $("siemQueryInput"),
+      siemTelemetryCount: $("siemTelemetryCount"),
+      queryExamples: $("queryExamples"),
+      siemSummary: $("siemSummary"),
+      siemTable: $("siemTable"),
+      hypothesisGrid: $("hypothesisGrid"),
+      knowledgeBadge: $("knowledgeBadge"),
+      newHypothesisTitle: $("newHypothesisTitle"),
+      addHypothesisBtn: $("addHypothesisBtn"),
+      assetScenarioBadge: $("assetScenarioBadge"),
+      serviceHealthGrid: $("serviceHealthGrid"),
+      containmentActionGrid: $("containmentActionGrid"),
+      assetStateGrid: $("assetStateGrid"),
+      incidentTaskList: $("incidentTaskList"),
       toolChain: $("toolChain"),
       viewButtons: $("viewButtons"),
       nodeInspector: $("nodeInspector"),
@@ -433,7 +471,7 @@
     ];
 
     const flowNames = ["Detect", "Scope", "Contain", "Recover", "Report"];
-    const attackerStages = ["RECON", "INITIAL ACCESS", "EXPLOITATION", "DATA ACCESS", "CONTAINMENT", "REMEDIATION", "RECOVERY", "CLOSED"];
+    const attackerStages = ["RECON", "RECONNAISSANCE", "INITIAL ACCESS", "EXECUTION", "PERSISTENCE", "PRIVILEGE ESCALATION", "DEFENSE EVASION", "CREDENTIAL ACCESS", "DISCOVERY", "LATERAL MOVEMENT", "COLLECTION", "COMMAND AND CONTROL", "EXFILTRATION", "IMPACT", "EXPLOITATION", "DATA ACCESS", "CONTAINMENT", "REMEDIATION", "RECOVERY", "CLOSED"];
 
     const evidenceGameRows = [
       { id: "E-001", source: "HTTP", suspicious: false, confidence: "Low", ip: "198.51.100.24", time: "09:10:21", sourceHost: "web-prod-01", text: "09:10:21 GET /customers?id=12 200", details: "Normal customer lookup. Useful as baseline but not proof of exploitation." },
@@ -565,29 +603,34 @@
     const roleAccess = {
       "SOC Analyst": {
         home: "warroom",
-        pages: ["warroom", "wafalert", "inbox", "evidence", "ai", "approvals", "reportbuilder"],
-        modules: ["Dashboard", "WAF Alert", "SOC Inbox", "Evidence Center", "AI Copilot", "Approvals", "Report Builder"],
+        pages: ["scenarios", "warroom", "wafalert", "inbox", "siem", "hypotheses", "assets", "evidence", "ai", "approvals", "reportbuilder"],
+        modules: ["Scenarios", "Dashboard", "WAF Alert", "SOC Inbox", "Mini SIEM", "Hypotheses", "Assets", "Evidence Center", "AI Copilot", "Approvals", "Report Builder"],
         console: ["access granted: SIEM, WAF, HTTP logs", "primary mission: validate alert and preserve evidence", "restricted: legal notification authority"]
       },
       "Incident Commander": {
         home: "warroom",
-        pages: ["warroom", "inbox", "comms", "approvals", "ai", "reportbuilder"],
-        modules: ["Dashboard", "Incident Updates", "Crisis Comms", "Approvals", "AI Command Advisor", "Executive Report"],
+        pages: ["scenarios", "warroom", "inbox", "hypotheses", "assets", "comms", "approvals", "ai", "reportbuilder"],
+        modules: ["Scenarios", "Dashboard", "Incident Updates", "Hypotheses", "Assets", "Crisis Comms", "Approvals", "AI Command Advisor", "Executive Report"],
         console: ["access granted: status board, comms, business impact", "primary mission: coordinate owners and decisions", "restricted: raw credential material"]
       },
       "AppSec Engineer": {
         home: "warroom",
-        pages: ["warroom", "appsec", "evidence", "ai", "reportbuilder"],
-        modules: ["Dashboard", "AppSec Workspace", "AppSec Evidence", "AI AppSec Assistant", "Remediation Report"],
+        pages: ["scenarios", "warroom", "appsec", "siem", "hypotheses", "assets", "evidence", "ai", "reportbuilder"],
+        modules: ["Scenarios", "Dashboard", "AppSec Workspace", "Mini SIEM", "Hypotheses", "Assets", "AppSec Evidence", "AI AppSec Assistant", "Remediation Report"],
         console: ["access granted: code trace, reproduction lab, patch pipeline, regression tests", "primary mission: reproduce, confirm root cause, remediate, and request deployment", "restricted: incident declaration, legal notification, executive containment authority"]
       },
       "Legal/Compliance": {
         home: "warroom",
-        pages: ["warroom", "legal", "comms", "evidence", "ai", "reportbuilder"],
-        modules: ["Dashboard", "Legal Assessment", "Communications Approval", "Compliance Evidence", "AI Legal Assistant", "Compliance Report"],
+        pages: ["scenarios", "warroom", "legal", "hypotheses", "assets", "comms", "evidence", "ai", "reportbuilder"],
+        modules: ["Scenarios", "Dashboard", "Legal Assessment", "Hypotheses", "Assets", "Communications Approval", "Compliance Evidence", "AI Legal Assistant", "Compliance Report"],
         console: ["access granted: incident facts, data categories, communication drafts", "primary mission: assess notification duties and document legal decision", "restricted: raw exploit tooling and production remediation"]
       }
     };
+
+    const EXERCISE_SAVE_KEY = "incident-response-simulator-exercise";
+    const simulationTools = window.IRSimulation || {};
+    let scenarioRuntime = null;
+    let scenarioCatalog = simulationTools.catalog || [];
 
     function saveSession(account) {
       try {
@@ -712,6 +755,455 @@
       renderRecentActions();
     }
 
+    function escapeHtml(value) {
+      return simulationTools.escapeHTML ? simulationTools.escapeHTML(value) : String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function currentScenario() {
+      return scenarioCatalog.find(item => item.id === state.scenarioId) || scenarioCatalog[0] || null;
+    }
+
+    function initializeScenarioRuntime(snapshot = null) {
+      if (!simulationTools.createRuntime) return;
+      scenarioRuntime = simulationTools.createRuntime(state.scenarioId, {
+        difficulty: state.difficulty,
+        seed: state.scenarioSeed,
+        snapshot
+      });
+      syncRuntimeState();
+    }
+
+    function syncRuntimeState() {
+      if (!scenarioRuntime) return null;
+      const publicState = scenarioRuntime.getPublicState(state.collectedEvidence);
+      state.scenarioTitle = publicState.scenario.title;
+      state.playerKnowledge = publicState.playerKnowledge;
+      state.runtimeHypotheses = publicState.hypotheses;
+      state.runtimeIocs = publicState.iocs;
+      state.runtimeAssets = publicState.assets;
+      state.runtimeServices = publicState.services;
+      state.runtimeTasks = publicState.tasks;
+      state.evidenceRecords = { ...state.evidenceRecords, ...publicState.evidenceRecords };
+      if (publicState.services.length) {
+        const lowestHealth = Math.min(...publicState.services.map(item => Number(item.health ?? 100)));
+        state.serviceHealth = clamp(Math.min(state.serviceHealth, lowestHealth), 0, 100);
+      }
+      return publicState;
+    }
+
+    function scenarioIntroText() {
+      const scenario = currentScenario();
+      if (!scenario) return "Select a scenario to begin the exercise.";
+      return `${scenario.title}. Difficulty: ${state.difficulty}. Status: ${state.scenarioStarted ? "ACTIVE" : "NOT STARTED"}.`;
+    }
+
+    function renderScenarioSelection() {
+      if (!els.scenarioCatalog) return;
+      if (els.scenarioDifficulty) els.scenarioDifficulty.value = state.difficulty;
+      const modes = simulationTools.difficultyModes || {};
+      const mode = modes[state.difficulty] || modes.Intermediate || {};
+      els.scenarioCatalog.innerHTML = scenarioCatalog.map(scenario => {
+        const active = state.scenarioId === scenario.id && state.scenarioStarted;
+        const rolesText = (scenario.availableRoles || []).join(", ");
+        return `<article class="scenario-card ${active ? "active" : ""} ${scenario.referenceImplementation ? "reference" : ""}">
+          <div>
+            <span class="status-badge ${scenario.referenceImplementation ? "confirmed" : "possible"}">${scenario.referenceImplementation ? "Reference implementation" : "Scenario seed"}</span>
+            <h3>${escapeHtml(scenario.title)}</h3>
+            <p class="small">${escapeHtml(scenario.description)}</p>
+          </div>
+          <div class="scenario-meta">
+            <span class="meta-chip"><b>Category</b><br>${escapeHtml(scenario.category)}</span>
+            <span class="meta-chip"><b>Difficulty</b><br>${escapeHtml(scenario.difficulty)}</span>
+            <span class="meta-chip"><b>Complexity</b><br>${escapeHtml(scenario.complexity || "guided exercise")}</span>
+            <span class="meta-chip"><b>Environment</b><br>${escapeHtml(scenario.environment)}</span>
+          </div>
+          <span class="small"><strong>Roles:</strong> ${escapeHtml(rolesText)}</span>
+          <div class="actions">
+            <button class="btn primary" type="button" data-start-scenario="${escapeHtml(scenario.id)}">${active ? "Restart Exercise" : "Start Exercise"}</button>
+            <button class="btn" type="button" data-preview-scenario="${escapeHtml(scenario.id)}">Preview briefing</button>
+          </div>
+        </article>`;
+      }).join("");
+      els.scenarioCatalog.insertAdjacentHTML("afterbegin", `<div class="scenario-card active">
+        <h3>Difficulty behavior: ${escapeHtml(state.difficulty)}</h3>
+        <p class="small">${state.difficulty === "Beginner" ? "Direct hints, fewer false positives, and more complete logs." : state.difficulty === "Intermediate" ? "Contextual hints and moderate noise across WAF, IAM, DB, and support sources." : state.difficulty === "Advanced" ? "Minimal hints, incomplete logs, more competing alerts, and faster attacker pressure." : "No direct hints, misleading indicators, log gaps, clock skew, and anti-forensics."}</p>
+        <div class="scenario-meta">
+          <span class="meta-chip"><b>Hints</b><br>${escapeHtml(mode.hints || "contextual")}</span>
+          <span class="meta-chip"><b>False positives</b><br>${Math.round((mode.falsePositiveRate || 0) * 100)}%</span>
+          <span class="meta-chip"><b>Log completeness</b><br>${Math.round((mode.logCompleteness || 0) * 100)}%</span>
+          <span class="meta-chip"><b>Attacker pressure</b><br>${mode.attackerPressure || 1}x</span>
+        </div>
+      </div>`);
+      els.scenarioCatalog.querySelectorAll("[data-start-scenario]").forEach(button => {
+        button.addEventListener("click", () => startScenario(button.dataset.startScenario));
+      });
+      els.scenarioCatalog.querySelectorAll("[data-preview-scenario]").forEach(button => {
+        button.addEventListener("click", () => previewScenario(button.dataset.previewScenario));
+      });
+    }
+
+    function startScenario(id) {
+      const scenario = scenarioCatalog.find(item => item.id === id) || scenarioCatalog[0];
+      if (!scenario) return;
+      state.scenarioId = scenario.id;
+      state.scenarioTitle = scenario.title;
+      state.difficulty = els.scenarioDifficulty ? els.scenarioDifficulty.value : (scenario.difficulty || "Intermediate");
+      state.scenarioSeed = scenario.seed || `${scenario.id}-seed`;
+      state.scenarioStarted = true;
+      initializeScenarioRuntime();
+      restart();
+      state.scenarioStarted = true;
+      renderLogin();
+      showPage(roleAccess[state.role].home);
+      logAction(`Started scenario: ${scenario.title} (${state.difficulty})`, "Exercise Control");
+      toast("Exercise started", `${scenario.title} is active at ${state.difficulty} difficulty.`);
+    }
+
+    function previewScenario(id) {
+      const scenario = scenarioCatalog.find(item => item.id === id);
+      if (!scenario) return;
+      openDrawer("Scenario Briefing", `<div class="report-section"><strong>${escapeHtml(scenario.title)}</strong><span>${escapeHtml(scenario.description)}</span></div>
+        <div class="report-section"><strong>Category</strong><span>${escapeHtml(scenario.category)}</span></div>
+        <div class="report-section"><strong>Environment</strong><span>${escapeHtml(scenario.environment)}</span></div>
+        <div class="report-section"><strong>Available roles</strong><span>${escapeHtml((scenario.availableRoles || []).join(", "))}</span></div>
+        <div class="report-section"><strong>Ground truth</strong><span>Hidden from responder interface. Available only to the simulation engine and instructor/debug paths.</span></div>`);
+    }
+
+    function renderSiem() {
+      if (!els.siemTable || !scenarioRuntime) return;
+      if (els.siemQueryInput) els.siemQueryInput.value = state.siemQuery;
+      if (!state.siemResults) state.siemResults = scenarioRuntime.queryTelemetry(state.siemQuery);
+      const publicState = syncRuntimeState();
+      if (els.siemTelemetryCount) {
+        const count = scenarioRuntime.getTelemetryCount ? scenarioRuntime.getTelemetryCount() : 0;
+        els.siemTelemetryCount.textContent = `${count.toLocaleString()} synthetic events`;
+      }
+      if (els.queryExamples) {
+        const examples = [
+          "search src_ip=\"198.51.100.24\"",
+          "WAFLogs | where SourceIP == \"198.51.100.24\" | sort timestamp asc",
+          "DatabaseLogs | where table == \"users\" | where records_read > 100",
+          "AuthLogs | where username == \"admin\"",
+          "HTTPLogs | where session_id == \"sess-a91f\" | project timestamp,src_ip,uri,status_code,bytes_received"
+        ];
+        els.queryExamples.innerHTML = examples.map(query => `<button class="query-chip" type="button" data-query-example="${escapeHtml(query)}">${escapeHtml(query)}</button>`).join("");
+        els.queryExamples.querySelectorAll("[data-query-example]").forEach(button => button.addEventListener("click", () => {
+          state.siemQuery = button.dataset.queryExample;
+          runSiemQuery(state.siemQuery);
+        }));
+      }
+      const result = state.siemResults;
+      const discoveries = result.discoveries?.length ? result.discoveries.map(item => `<div class="knowledge-item">${escapeHtml(item)}</div>`).join("") : `<div class="knowledge-item">No new discoveries. Broaden the query or pivot on source, user, host, or session.</div>`;
+      if (els.siemSummary) {
+        els.siemSummary.innerHTML = `<div class="scenario-meta">
+          <span class="meta-chip"><b>Query</b><br>${escapeHtml(result.query || state.siemQuery)}</span>
+          <span class="meta-chip"><b>Matches</b><br>${Number(result.total || 0).toLocaleString()}</span>
+          <span class="meta-chip"><b>Displayed</b><br>${Number(result.rows?.length || 0).toLocaleString()}</span>
+          <span class="meta-chip"><b>Difficulty hint</b><br>${escapeHtml(result.hint || "No direct hint at this difficulty.")}</span>
+        </div>${discoveries}`;
+      }
+      if (result.aggregate) {
+        els.siemTable.innerHTML = `<thead><tr><th>Value</th><th>Count</th></tr></thead><tbody>${result.aggregate.map(row => `<tr><td>${escapeHtml(row.value)}</td><td>${row.count}</td></tr>`).join("")}</tbody>`;
+        return;
+      }
+      const fields = result.fields || ["timestamp", "source", "hostname", "src_ip", "username", "event_type", "action", "severity", "summary"];
+      els.siemTable.innerHTML = `<thead><tr>${fields.map(field => `<th>${escapeHtml(field)}</th>`).join("")}<th>Actions</th></tr></thead>
+        <tbody>${(result.rows || []).map(row => `<tr>
+          ${fields.map(field => `<td>${formatSiemCell(row, field)}</td>`).join("")}
+          <td>${row.evidenceId ? `<button class="btn" type="button" data-siem-evidence="${escapeHtml(row.evidenceId)}">Collect ${escapeHtml(row.evidenceId)}</button>` : `<button class="btn ghost" type="button" data-siem-event="${escapeHtml(row.event_id)}">Inspect</button>`}</td>
+        </tr>`).join("")}</tbody>`;
+      els.siemTable.querySelectorAll("[data-pivot-field]").forEach(button => button.addEventListener("click", () => pivotSiem(button.dataset.pivotField, button.dataset.pivotValue)));
+      els.siemTable.querySelectorAll("[data-siem-evidence]").forEach(button => button.addEventListener("click", () => collectEvidence(button.dataset.siemEvidence)));
+      els.siemTable.querySelectorAll("[data-siem-event]").forEach(button => button.addEventListener("click", () => inspectSiemEvent(button.dataset.siemEvent)));
+      renderHypotheses();
+      renderAssetsAndTasks();
+      if (publicState) renderObjective();
+    }
+
+    function formatSiemCell(row, field) {
+      const value = row[field] ?? row[field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)] ?? "";
+      const pivotable = ["src_ip", "username", "hostname", "session_id", "uri"].includes(field) && value && value !== "n/a";
+      if (!pivotable) return escapeHtml(field === "timestamp" && value ? value.replace("2026-08-25T", "").replace(".000Z", "Z") : value);
+      return `<button class="pivot-link" type="button" data-pivot-field="${escapeHtml(field)}" data-pivot-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`;
+    }
+
+    function runSiemQuery(raw) {
+      if (!scenarioRuntime) return;
+      const query = String(raw || "").trim();
+      if (!query) return;
+      state.siemQuery = query;
+      state.siemResults = scenarioRuntime.queryTelemetry(query);
+      const output = scenarioRuntime.formatTerminalResult(state.siemResults);
+      state.terminalLines.push(`SIEM query completed: ${state.siemResults.total} matches`);
+      state.terminalLines.push(output.split("\n").slice(0, 6).join("\n"));
+      state.evidence = clamp(state.evidence + Math.min(6, state.siemResults.discoveries.length * 2), 0, 100);
+      if (state.siemResults.discoveries.length) {
+        state.attackerHold = Math.max(state.attackerHold, 20);
+        logAction(`SIEM discovery: ${state.siemResults.discoveries[0]}`);
+        toast("SIEM discovery", state.siemResults.discoveries[0]);
+      }
+      syncRuntimeState();
+      renderTerminal();
+      renderSiem();
+      renderMetrics();
+      renderHypotheses();
+      renderReportBuilder();
+    }
+
+    function pivotSiem(field, value) {
+      const query = `search ${field}="${value}"`;
+      state.siemQuery = query;
+      runSiemQuery(query);
+    }
+
+    function inspectSiemEvent(eventId) {
+      const row = state.siemResults?.rows?.find(item => item.event_id === eventId);
+      if (!row) return;
+      openDrawer("SIEM Event", `<div class="report-section"><strong>${escapeHtml(row.event_id)}</strong><span>${escapeHtml(row.summary || row.event_type)}</span></div>
+        <div class="report-section"><strong>Source</strong><span>${escapeHtml(row.source)} / ${escapeHtml(row.hostname)}</span></div>
+        <div class="report-section"><strong>Pivot values</strong><span>src_ip=${escapeHtml(row.src_ip || "")} | username=${escapeHtml(row.username || "")} | session=${escapeHtml(row.session_id || "")}</span></div>
+        <div class="report-section"><strong>Raw</strong><span>${escapeHtml(JSON.stringify(row, null, 2))}</span></div>`);
+    }
+
+    function renderHypotheses() {
+      if (!els.hypothesisGrid) return;
+      syncRuntimeState();
+      const collectedIds = Object.keys(state.collectedEvidence);
+      const runtimeHypotheses = scenarioRuntime ? scenarioRuntime.evaluateHypotheses(state.collectedEvidence) : [];
+      const custom = state.customHypotheses.map(item => ({
+        ...item,
+        calculatedConfidence: Math.max(5, Math.min(80, collectedIds.length * 12)),
+        suggestedState: collectedIds.length >= 3 ? "Likely" : "Needs More Evidence",
+        attachedEvidence: collectedIds
+      }));
+      const hypotheses = runtimeHypotheses.concat(custom);
+      if (els.knowledgeBadge) els.knowledgeBadge.textContent = `${state.playerKnowledge.initialFacts.length} known facts / ${state.playerKnowledge.unknowns.length} unknowns`;
+      els.hypothesisGrid.innerHTML = hypotheses.map(hypothesis => {
+        const currentStatus = state.hypothesisOverrides[hypothesis.id] || hypothesis.status || hypothesis.suggestedState;
+        const statusClass = currentStatus.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const evidence = hypothesis.attachedEvidence?.length ? hypothesis.attachedEvidence.join(", ") : "No evidence attached";
+        const contradictions = hypothesis.contradictions?.length ? hypothesis.contradictions.join("; ") : "None documented";
+        return `<article class="hypothesis-card ${statusClass}">
+          <div>
+            <span class="status-badge ${statusClass}">${escapeHtml(currentStatus)}</span>
+            <h3>${escapeHtml(hypothesis.title)}</h3>
+          </div>
+          <div class="confidence-meter" aria-label="Confidence ${hypothesis.calculatedConfidence}%"><span style="width:${hypothesis.calculatedConfidence}%"></span></div>
+          <span class="small"><strong>Calculated confidence:</strong> ${hypothesis.calculatedConfidence}% | Suggested: ${escapeHtml(hypothesis.suggestedState)}</span>
+          <span class="small"><strong>Supporting evidence:</strong> ${escapeHtml(evidence)}</span>
+          <span class="small"><strong>Contradictions:</strong> ${escapeHtml(contradictions)}</span>
+          <select data-hypothesis-status="${escapeHtml(hypothesis.id)}" aria-label="Set hypothesis status">
+            ${["Confirmed", "Likely", "Possible", "Unlikely", "Rejected", "Needs More Evidence"].map(status => `<option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+        </article>`;
+      }).join("");
+      els.hypothesisGrid.querySelectorAll("[data-hypothesis-status]").forEach(select => select.addEventListener("change", () => {
+        state.hypothesisOverrides[select.dataset.hypothesisStatus] = select.value;
+        logAction(`Hypothesis updated: ${select.dataset.hypothesisStatus} -> ${select.value}`);
+        renderHypotheses();
+        renderReportBuilder();
+      }));
+    }
+
+    function addCustomHypothesis() {
+      const title = (els.newHypothesisTitle?.value || "").trim();
+      if (title.length < 8) {
+        toast("Hypothesis too short", "Add a specific statement responders can prove or reject.", "bad");
+        return;
+      }
+      const id = `HYP-CUSTOM-${String(state.customHypotheses.length + 1).padStart(2, "0")}`;
+      state.customHypotheses.push({ id, title, status: "Needs More Evidence", baseConfidence: 12, supportingEvidence: [], confirmingEvidence: [], contradictions: [] });
+      els.newHypothesisTitle.value = "";
+      logAction(`Created hypothesis: ${title}`);
+      renderHypotheses();
+    }
+
+    function renderAssetsAndTasks() {
+      if (!els.assetStateGrid) return;
+      syncRuntimeState();
+      if (els.assetScenarioBadge) els.assetScenarioBadge.textContent = scenarioIntroText();
+      els.serviceHealthGrid.innerHTML = state.runtimeServices.map(service => `<div class="service-row">
+        <b>${escapeHtml(service.name)}</b>
+        <span class="status-badge ${String(service.status || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}">${escapeHtml(service.status)}</span>
+        <span class="small">Business impact: ${escapeHtml(service.businessImpact || "Unknown")} | Health: ${Number(service.health ?? 100)}%</span>
+        <div class="service-bar"><span style="width:${Number(service.health ?? 100)}%"></span></div>
+      </div>`).join("");
+      els.containmentActionGrid.innerHTML = [
+        ["waf_block", "Deploy scoped WAF block", "Stops known SQLi pattern with limited availability impact."],
+        ["block_ip", "Block current source IP", "Fast but incomplete; attacker may switch infrastructure."],
+        ["rotate_db_credential", "Rotate DB credential", "Cuts replay path; can break portal if app secret is not updated."],
+        ["isolate_asset", "Isolate customer portal", "Strong containment, high business impact and reduced live visibility."]
+      ].map(action => `<button class="tool-step" type="button" data-runtime-action="${action[0]}"><b>${action[1]}</b><p>${action[2]}</p></button>`).join("");
+      els.containmentActionGrid.querySelectorAll("[data-runtime-action]").forEach(button => button.addEventListener("click", () => applyRuntimeAction(button.dataset.runtimeAction)));
+      els.assetStateGrid.innerHTML = state.runtimeAssets.map(asset => `<article class="asset-state-card">
+        <span class="status-badge">${escapeHtml(asset.criticality || "UNKNOWN")}</span>
+        <h3>${escapeHtml(asset.name || asset.id)}</h3>
+        <span class="small"><strong>Type:</strong> ${escapeHtml(asset.type)}</span>
+        <span class="small"><strong>Operational:</strong> ${escapeHtml(asset.operationalStatus)} | <strong>Security:</strong> ${escapeHtml(asset.securityState)}</span>
+        <span class="small"><strong>Isolation:</strong> ${escapeHtml(asset.isolation)} | <strong>Logging:</strong> ${escapeHtml(asset.logging)}</span>
+        <span class="small"><strong>Active sessions:</strong> ${Number(asset.activeSessions || 0).toLocaleString()}</span>
+      </article>`).join("");
+      els.incidentTaskList.innerHTML = state.runtimeTasks.map(task => `<div class="task-row">
+        <span><b>${escapeHtml(task.id)} ${escapeHtml(task.title)}</b><br><span class="small">Owner: ${escapeHtml(task.owner)} | Priority: ${escapeHtml(task.priority)} | Phase: ${escapeHtml(task.phase)}</span></span>
+        <span class="status-badge ${String(task.status || "").toLowerCase()}">${escapeHtml(task.status)}</span>
+        <div class="task-actions">
+          ${["Pending", "Active", "Blocked", "Done", "Cancelled"].map(status => `<button class="btn ghost" type="button" data-task-status="${escapeHtml(task.id)}:${status}">${status}</button>`).join("")}
+        </div>
+      </div>`).join("");
+      els.incidentTaskList.querySelectorAll("[data-task-status]").forEach(button => button.addEventListener("click", () => {
+        const [taskId, status] = button.dataset.taskStatus.split(":");
+        if (scenarioRuntime) scenarioRuntime.updateTask(taskId, status, state.user ? state.user.name : state.role);
+        logAction(`Task ${taskId} set to ${status}`);
+        renderAssetsAndTasks();
+      }));
+    }
+
+    function applyRuntimeAction(action) {
+      if (!scenarioRuntime) return;
+      let runtimeEvents = [];
+      if (action === "waf_block") {
+        runtimeEvents = scenarioRuntime.recordDefenderAction("waf_block");
+        state.risk = clamp(state.risk - 12, 0, 100);
+        state.appliedRecs.contain = true;
+        state.containmentTime = state.elapsedSeconds;
+      }
+      if (action === "block_ip") {
+        runtimeEvents = scenarioRuntime.recordDefenderAction("block_ip", { ip: "198.51.100.24" });
+        state.risk = clamp(state.risk - 4, 0, 100);
+        state.attackerProgress = clamp(state.attackerProgress + 8, 0, 100);
+      }
+      if (action === "rotate_db_credential") {
+        runtimeEvents = scenarioRuntime.recordDefenderAction("rotate_db_credential", { appSecretUpdated: false });
+        state.risk = clamp(state.risk - 8, 0, 100);
+        state.serviceHealth = clamp(state.serviceHealth - 18, 0, 100);
+        state.loss += 18000;
+      }
+      if (action === "isolate_asset") {
+        runtimeEvents = scenarioRuntime.recordDefenderAction("isolate_asset", { assetId: "customer-portal-prod" });
+        state.risk = clamp(state.risk - 22, 0, 100);
+        state.serviceHealth = clamp(state.serviceHealth - 45, 0, 100);
+        state.loss += 85000;
+        state.containmentTime = state.elapsedSeconds;
+      }
+      runtimeEvents.forEach(applyRuntimeEvent);
+      logAction(`Containment action executed: ${action}`);
+      syncRuntimeState();
+      renderAssetsAndTasks();
+      renderMetrics();
+      renderReportBuilder();
+    }
+
+    function applyRuntimeEvent(event) {
+      if (!event) return;
+      state.notificationHistory.push({ ...event, time: incidentTime() });
+      logAction(event.message || event.title, "Attacker Engine");
+      toast(event.title || "Simulation event", event.message || "Scenario state changed.", event.severity === "LOW" ? "good" : "bad");
+    }
+
+    function saveExerciseState(showToast = true) {
+      const payload = {
+        savedAt: new Date().toISOString(),
+        state: {
+          scenarioId: state.scenarioId,
+          scenarioTitle: state.scenarioTitle,
+          scenarioStarted: state.scenarioStarted,
+          difficulty: state.difficulty,
+          scenarioSeed: state.scenarioSeed,
+          phase: state.phase,
+          selected: state.selected,
+          activeTab: state.activeTab,
+          checks: state.checks,
+          appliedRecs: state.appliedRecs,
+          role: state.role,
+          wafAlertOpened: state.wafAlertOpened,
+          answeredMessages: state.answeredMessages,
+          selectedEvidence: state.selectedEvidence,
+          collectedEvidence: state.collectedEvidence,
+          evidenceRecords: state.evidenceRecords,
+          hypothesisOverrides: state.hypothesisOverrides,
+          customHypotheses: state.customHypotheses,
+          approvals: state.approvals,
+          patchTested: state.patchTested,
+          patchDeployed: state.patchDeployed,
+          inboxStatuses: state.inboxStatuses,
+          objectiveStep: state.objectiveStep,
+          reportReadiness: state.reportReadiness,
+          attackerProgress: state.attackerProgress,
+          serviceHealth: state.serviceHealth,
+          detectedTime: state.detectedTime,
+          containmentTime: state.containmentTime,
+          elapsedSeconds: state.elapsedSeconds,
+          recordsExposed: state.recordsExposed,
+          incidentClock: state.incidentClock,
+          handoffs: state.handoffs,
+          handoffViews: state.handoffViews,
+          injectsSeen: state.injectsSeen,
+          terminalLines: state.terminalLines,
+          score: state.score,
+          risk: state.risk,
+          evidence: state.evidence,
+          loss: state.loss,
+          history: state.history,
+          actionTimeline: state.actionTimeline,
+          evidenceNotes: state.evidenceNotes,
+          commanderAccepted: state.commanderAccepted,
+          commandDecision: state.commandDecision,
+          commandComms: state.commandComms,
+          appsecHandoffAccepted: state.appsecHandoffAccepted,
+          appsecBaselineRun: state.appsecBaselineRun,
+          appsecExploitReproduced: state.appsecExploitReproduced,
+          appsecTraceInspected: state.appsecTraceInspected,
+          appsecRootCauseConfirmed: state.appsecRootCauseConfirmed,
+          appsecPatchApplied: state.appsecPatchApplied,
+          appsecDeploymentRequested: state.appsecDeploymentRequested,
+          legalHandoffAccepted: state.legalHandoffAccepted,
+          legalDataClasses: state.legalDataClasses,
+          legalExposureSaved: state.legalExposureSaved,
+          legalDecisionRecorded: state.legalDecisionRecorded,
+          legalComms: state.legalComms
+        },
+        runtime: scenarioRuntime ? scenarioRuntime.serialize() : null
+      };
+      try {
+        window.localStorage.setItem(EXERCISE_SAVE_KEY, JSON.stringify(payload));
+        if (showToast) toast("Exercise saved", "Scenario, evidence, hypotheses, tasks, and runtime state saved locally.");
+      } catch (error) {
+        toast("Save failed", "Browser storage is unavailable for this session.", "bad");
+      }
+    }
+
+    function resumeExerciseState() {
+      try {
+        const payload = JSON.parse(window.localStorage.getItem(EXERCISE_SAVE_KEY) || "null");
+        if (!payload?.state) {
+          toast("No saved exercise", "Start and save an exercise first.", "bad");
+          return;
+        }
+        Object.assign(state, payload.state);
+        initializeScenarioRuntime(payload.runtime);
+        state.scenarioStarted = true;
+        renderLogin();
+        renderPhase();
+        renderScenarioSelection();
+        renderSiem();
+        renderHypotheses();
+        renderAssetsAndTasks();
+        renderSocInbox();
+        renderEvidenceGame();
+        renderReportBuilder();
+        showPage(state.scenarioStarted ? roleAccess[state.role].home : "scenarios");
+        toast("Exercise resumed", `${state.scenarioTitle} restored from local save.`);
+      } catch (error) {
+        toast("Resume failed", "Saved exercise could not be parsed.", "bad");
+      }
+    }
+
     function socValidated() {
       return state.inboxStatuses.waf === "INVESTIGATING" || state.inboxStatuses.waf === "ESCALATED" || Boolean(state.collectedEvidence["E-003"] || state.collectedEvidence["E-004"]);
     }
@@ -804,6 +1296,10 @@
     }
 
     function workflowAttackStage() {
+      if (scenarioRuntime) {
+        const runtimeStage = scenarioRuntime.getPublicState(state.collectedEvidence).attacker?.stage;
+        if (runtimeStage) return String(runtimeStage).toUpperCase();
+      }
       if (state.reportReadiness >= 85 && state.patchDeployed && state.legalDecisionRecorded) return "CLOSED";
       if (state.patchDeployed) return "RECOVERY";
       if (state.appsecDeploymentRequested || state.patchTested) return "REMEDIATION";
@@ -1124,7 +1620,7 @@
         {
           title: "Contain active exploitation",
           text: "Preserve evidence, then block the active pattern or request commander approval for isolation.",
-          actions: [["Snapshot DB", () => runSocCommand("snapshot db")], ["Review block action", () => reviewAction("block")], ["Request approval", () => showPage("approvals")]]
+          actions: [["Snapshot DB", () => runSocCommand("snapshot db")], ["Review block action", () => reviewAction("contain")], ["Request approval", () => showPage("approvals")]]
         },
         {
           title: "Recover and report",
@@ -1303,6 +1799,7 @@
       }
       if (action === "targeted") {
         state.commandDecision = "targeted containment";
+        if (scenarioRuntime) scenarioRuntime.recordDefenderAction("waf_block").forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 18, 0, 100);
         state.serviceHealth = clamp(state.serviceHealth - 8, 0, 100);
         state.containmentTime = state.elapsedSeconds;
@@ -1315,6 +1812,7 @@
       }
       if (action === "isolate") {
         state.commandDecision = "full isolation";
+        if (scenarioRuntime) scenarioRuntime.recordDefenderAction("isolate_asset", { assetId: "customer-portal-prod" }).forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 30, 0, 100);
         state.serviceHealth = clamp(state.serviceHealth - 55, 0, 100);
         state.loss += 90000;
@@ -1325,6 +1823,7 @@
       }
       if (action === "blockip") {
         state.commandDecision = "block source IP only";
+        if (scenarioRuntime) scenarioRuntime.recordDefenderAction("block_ip", { ip: "198.51.100.24" }).forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 6, 0, 100);
         state.attackerProgress = clamp(state.attackerProgress + 9, 0, 100);
         state.score -= 7;
@@ -1358,32 +1857,41 @@
       state.terminalLines.push(`analyst@soc> ${raw}`);
       logAction(`SOC terminal command: ${raw}`);
       if (command === "help") {
-        state.terminalLines.push("commands: timeline | search ip 198.51.100.24 | search user admin | block 198.51.100.24 | isolate web-01 | snapshot db");
+        state.terminalLines.push("commands: timeline | search src_ip=\"198.51.100.24\" | WAFLogs | where SourceIP == \"198.51.100.24\" | DatabaseLogs | where records_read > 100 | block 198.51.100.24 | isolate web-01 | snapshot db");
       } else if (command === "timeline") {
         state.terminalLines.push("09:12 WAF alert\n09:14 admin route probing\n09:17 SQLi payload succeeds\n09:20 users table queried\n09:27 possible admin login\n09:31 export attempt");
         state.evidence = clamp(state.evidence + 5, 0, 100);
         state.attackerHold = Math.max(state.attackerHold, 20);
-      } else if (command.includes("search ip")) {
-        state.terminalLines.push("12 events found for 198.51.100.24\n09:04 GET /customers?id=12\n09:06 SQL error on id parameter\n09:12 SQLI_GENERIC_17\n09:20 users table query correlated");
-        state.evidence = clamp(state.evidence + 8, 0, 100);
-        state.attackerHold = Math.max(state.attackerHold, 25);
-      } else if (command.includes("search user admin")) {
-        state.terminalLines.push("admin: no confirmed compromise\nwarning: failed login attempts from new ASN after DB scan");
-        state.evidence = clamp(state.evidence + 4, 0, 100);
+      } else if (scenarioRuntime && (command.startsWith("search ") || /^[a-z]+logs\b/i.test(raw.trim()) || raw.includes("|"))) {
+        const result = scenarioRuntime.queryTelemetry(raw);
+        state.siemQuery = raw;
+        state.siemResults = result;
+        state.terminalLines.push(scenarioRuntime.formatTerminalResult(result));
+        state.evidence = clamp(state.evidence + Math.min(8, result.discoveries.length * 3), 0, 100);
+        if (result.discoveries.length) {
+          state.attackerHold = Math.max(state.attackerHold, 25);
+          logAction(`SIEM terminal discovery: ${result.discoveries[0]}`);
+        }
+        syncRuntimeState();
       } else if (command.includes("block")) {
         state.terminalLines.push("WAF rule promoted to BLOCK for source and SQLi pattern\nattacker switches IP but payload path is disrupted");
+        const runtimeEvents = scenarioRuntime ? scenarioRuntime.recordDefenderAction(command.includes("198.51.100.24") ? "block_ip" : "waf_block", { ip: "198.51.100.24" }) : [];
+        runtimeEvents.forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 10, 0, 100);
         state.attackerHold = Math.max(state.attackerHold, 50);
         state.containmentTime = state.elapsedSeconds;
         state.score += 8;
       } else if (command.includes("isolate")) {
         state.terminalLines.push("web-01 isolation staged\nbusiness warning: customer portal may degrade");
+        const runtimeEvents = scenarioRuntime ? scenarioRuntime.recordDefenderAction("isolate_asset", { assetId: "customer-portal-prod" }) : [];
+        runtimeEvents.forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 12, 0, 100);
         state.loss += 18000;
         state.serviceHealth = clamp(state.serviceHealth - 12, 0, 100);
         state.containmentTime = state.elapsedSeconds;
       } else if (command.includes("snapshot")) {
-        state.terminalLines.push("DB audit snapshot acquired\nsha256=92fc3b71d0e... source=db-prod-01 collector=SOC");
+        state.terminalLines.push("DB audit snapshot acquired\ncalculating SHA-256 with browser crypto... source=db-prod-01 collector=SOC");
+        collectEvidence("E-005");
         state.evidence = clamp(state.evidence + 14, 0, 100);
         state.attackerHold = Math.max(state.attackerHold, 30);
         state.score += 6;
@@ -1467,27 +1975,50 @@
 
     function renderCollectedEvidenceCards(collected) {
       if (!els.collectedEvidenceList || !collected.length) return;
-      els.collectedEvidenceList.innerHTML = collected.map(row => `<div class="custody-card">
+      els.collectedEvidenceList.innerHTML = collected.map(row => {
+        const record = typeof state.collectedEvidence[row.id] === "object" ? state.collectedEvidence[row.id] : null;
+        const custody = record?.custody?.length ? record.custody.slice(-4).map(item => `<div class="custody-line"><b>${escapeHtml(item.time)}</b> ${escapeHtml(item.actor)} ${escapeHtml(item.action)}<br><span>${escapeHtml(item.details || "")}</span></div>`).join("") : `<div class="custody-line">Custody history pending.</div>`;
+        const hash = record?.sha256 || "calculating";
+        const integrity = record?.integrity || "PENDING";
+        const status = record?.status || "Relevant";
+        return `<div class="custody-card">
         <strong>${row.id} ${row.source} Evidence</strong>
-        <span>Confidence: ${row.confidence} | Collected ${row.time} | Integrity: SHA-256 verified</span>
-        <span>Collected by: ${state.user ? state.user.name : state.role} | Source: ${row.sourceHost}</span>
+        <span>Confidence: ${row.confidence} | Collected ${record?.collectedAt || row.time} | Integrity: ${escapeHtml(integrity)}</span>
+        <span>Collected by: ${escapeHtml(record?.collector || (state.user ? state.user.name : state.role))} | Source: ${escapeHtml(record?.source || row.sourceHost)}</span>
+        <span>SHA-256: ${escapeHtml(hash === "calculating" ? hash : hash.slice(0, 24) + "...")}</span>
+        <span>Status: ${escapeHtml(status)} | Size: ${Number(record?.originalSize || row.text.length).toLocaleString()} bytes</span>
         <span>${state.evidenceNotes[row.id] || row.details}</span>
+        <div class="custody-timeline">${custody}</div>
         <div class="custody-actions">
           <button class="btn" type="button" data-view-evidence="${row.id}">View</button>
           <button class="btn" type="button" data-note-evidence="${row.id}">Add note</button>
-          <button class="btn ghost" type="button" data-remove-evidence="${row.id}">Remove</button>
+          <button class="btn ghost" type="button" data-status-evidence="${row.id}" data-status-value="Irrelevant">Mark irrelevant</button>
+          <button class="btn ghost" type="button" data-status-evidence="${row.id}" data-status-value="Excluded From Report">Exclude from report</button>
         </div>
-      </div>`).join("");
+      </div>`;
+      }).join("");
       els.collectedEvidenceList.querySelectorAll("[data-view-evidence]").forEach(button => button.addEventListener("click", () => inspectEvidenceRow(button.dataset.viewEvidence)));
       els.collectedEvidenceList.querySelectorAll("[data-note-evidence]").forEach(button => button.addEventListener("click", () => {
         state.evidenceNotes[button.dataset.noteEvidence] = "Analyst note: related to SQLi incident timeline and preserved for final report.";
+        const record = state.collectedEvidence[button.dataset.noteEvidence];
+        if (record && typeof record === "object") record.custody.push({ time: incidentTime(), actor: state.user ? state.user.name : state.role, action: "NOTE ADDED", details: state.evidenceNotes[button.dataset.noteEvidence] });
         logAction(`Analyst note added to ${button.dataset.noteEvidence}`);
         renderEvidenceGame();
         renderReportBuilder();
       }));
-      els.collectedEvidenceList.querySelectorAll("[data-remove-evidence]").forEach(button => button.addEventListener("click", () => {
-        delete state.collectedEvidence[button.dataset.removeEvidence];
-        logAction(`Evidence removed from case: ${button.dataset.removeEvidence}`);
+      els.collectedEvidenceList.querySelectorAll("[data-status-evidence]").forEach(button => button.addEventListener("click", () => {
+        const id = button.dataset.statusEvidence;
+        const status = button.dataset.statusValue;
+        let updated = null;
+        if (scenarioRuntime) {
+          updated = scenarioRuntime.setEvidenceStatus(id, status, state.user ? state.user.name : state.role);
+          if (updated) state.collectedEvidence[id] = updated;
+        }
+        if (!updated && state.collectedEvidence[id] && typeof state.collectedEvidence[id] === "object") {
+          state.collectedEvidence[id].status = status;
+          state.collectedEvidence[id].custody.push({ time: incidentTime(), actor: state.user ? state.user.name : state.role, action: `STATUS: ${status.toUpperCase()}`, details: "Evidence retained with non-destructive disposition" });
+        }
+        logAction(`Evidence status updated: ${id} -> ${status}`);
         renderEvidenceGame();
         renderReportBuilder();
       }));
@@ -2152,6 +2683,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
         item.status = "approved";
         if (item.type.includes("PATCH-204")) {
           state.patchDeployed = true;
+          if (scenarioRuntime) scenarioRuntime.recordDefenderAction("patch_deployed").forEach(applyRuntimeEvent);
           if (state.incidentClock.recoveredAt === null) state.incidentClock.recoveredAt = state.elapsedSeconds;
           updateHandoff("commander", "PATCH-204 approved; waiting for stable production monitoring window.");
           updateHandoff("legal", "Remediation deployed; legal can include recovery status in disposition.");
@@ -2198,10 +2730,26 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       els.contextMenu.style.top = `${y}px`;
     }
 
-    function collectEvidence(id) {
+    async function collectEvidence(id) {
       const row = evidenceGameRows.find(item => item.id === id);
       if (!row || state.collectedEvidence[id]) return;
-      state.collectedEvidence[id] = true;
+      const collector = state.user ? state.user.name : state.role;
+      state.collectedEvidence[id] = {
+        id,
+        name: `${row.source} evidence`,
+        type: row.source,
+        source: row.sourceHost,
+        collector,
+        collectedAt: incidentTime(),
+        originalSize: row.text.length,
+        sha256: "calculating",
+        integrity: "PENDING",
+        status: "Relevant",
+        custody: [
+          { time: incidentTime(), actor: collector, action: "COLLECTED", details: "Artifact added to case record" }
+        ],
+        notes: row.details
+      };
       const evidenceGain = row.id === "E-003" ? 16 : row.id === "E-005" ? 18 : row.id === "E-008" ? 22 : row.suspicious ? 10 : 3;
       if (row.suspicious) {
         state.evidence = clamp(state.evidence + evidenceGain, 0, 100);
@@ -2227,8 +2775,28 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
         logAction(`Collected low-value evidence ${row.id}`);
         toast("Low-value evidence", "Context retained, but evidence quality -2%.", "bad");
       }
+      if (scenarioRuntime) {
+        try {
+          const record = await scenarioRuntime.preserveEvidence({ ...row, name: `${row.source} evidence`, type: row.source }, {
+            collector,
+            timeLabel: incidentTime(),
+            source: row.sourceHost,
+            notes: row.details
+          });
+          state.collectedEvidence[id] = record;
+          state.evidenceRecords[id] = record;
+          state.terminalLines.push(`${id} SHA-256 ${record.sha256.slice(0, 18)}... integrity=${record.integrity}`);
+          renderTerminal();
+          renderHypotheses();
+        } catch (error) {
+          state.collectedEvidence[id].integrity = "HASH FAILED";
+          state.collectedEvidence[id].custody.push({ time: incidentTime(), actor: "System", action: "HASH FAILED", details: "Browser crypto could not complete digest" });
+        }
+      }
       renderEvidenceGame();
       renderMetrics();
+      renderHypotheses();
+      renderAssetsAndTasks();
       renderReportBuilder();
       renderObjective();
     }
@@ -2239,6 +2807,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       const hasHttp = state.collectedEvidence["E-003"] || state.evidence >= 25;
       const hasDb = state.collectedEvidence["E-005"] || state.evidence >= 45;
       const hasCustomerImpact = state.collectedEvidence["E-008"] || state.recordsExposed !== null;
+      const hasExfil = state.terminalLines.some(line => /egress|exfil/i.test(line)) && state.evidence >= 70;
       const aiConfidence = clamp(41 + (hasHttp ? 18 : 0) + (hasDb ? 23 : 0) + (hasCustomerImpact ? 8 : 0) + Math.floor(state.evidence / 8), 0, 92);
       const hypothesis = hasHttp && hasDb ? "Confirmed exploitation; data access under scope" : "Possible SQL Injection";
       const reasoning = hasHttp && hasDb ?
@@ -2448,6 +3017,10 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       }
       state.elapsedSeconds += Math.max(1, Math.round(7 * state.demoSpeed));
       maybeIncidentInjects();
+      if (scenarioRuntime) {
+        scenarioRuntime.tick({ elapsedSeconds: state.elapsedSeconds, difficulty: state.difficulty }).forEach(applyRuntimeEvent);
+        syncRuntimeState();
+      }
       state.approvals.forEach(item => {
         if (item.status === "pending") item.elapsed = (item.elapsed || 0) + Math.max(1, Math.round(7 * state.demoSpeed));
       });
@@ -2503,6 +3076,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       if (state.appliedRecs[id]) return;
       state.appliedRecs[id] = true;
       if (id === "contain") {
+        if (scenarioRuntime) scenarioRuntime.recordDefenderAction("waf_block").forEach(applyRuntimeEvent);
         state.risk = clamp(state.risk - 7, 0, 100);
         state.attackerHold = 45;
         state.containmentTime = state.elapsedSeconds;
@@ -2942,7 +3516,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       document.body.classList.toggle("is-legal", state.role === "Legal/Compliance");
       const account = state.user || { name: state.role, accessLevel: "Incident Response", shift: "Active", clearance: "IR" };
       els.loginPanel.innerHTML = `
-        <div><span class="session-badge">Workspace active</span><p class="small">Welcome, ${account.name}. Role: ${state.role}. Access level: ${account.accessLevel}. Assignment: INC-2026-0812 / Severity HIGH.</p></div>
+        <div><span class="session-badge">Workspace active</span><p class="small">Welcome, ${account.name}. Role: ${state.role}. Access level: ${account.accessLevel}. Assignment: ${state.scenarioStarted ? escapeHtml(state.scenarioTitle) : "Choose scenario"} / Difficulty ${state.difficulty}.</p></div>
         <button class="btn ghost" id="switchRoleBtn" type="button">Switch role</button>`;
       $("switchRoleBtn").addEventListener("click", () => {
         clearSavedSession();
@@ -3372,6 +3946,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
     function showPage(page) {
       if (!state.loggedIn) page = "roles";
       if (state.loggedIn && page === "roles") page = roleAccess[state.role].home;
+      if (state.loggedIn && !state.scenarioStarted && page !== "scenarios") page = "scenarios";
       if (state.loggedIn && !roleAccess[state.role].pages.includes(page)) page = roleAccess[state.role].home;
       if (state.loggedIn && state.role === "SOC Analyst" && page === "wafalert" && !state.wafAlertOpened) {
         state.wafAlertOpened = true;
@@ -3408,6 +3983,10 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
         renderKillGame();
       }
       if (page === "inbox") renderSocInbox();
+      if (page === "scenarios") renderScenarioSelection();
+      if (page === "siem") renderSiem();
+      if (page === "hypotheses") renderHypotheses();
+      if (page === "assets") renderAssetsAndTasks();
       if (page === "appsec") renderAppSec();
       if (page === "legal") renderLegal();
       if (page === "approvals") renderApprovals();
@@ -3721,6 +4300,19 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       state.selectedLoginRole = null;
       state.user = keepLoggedIn ? currentUser : null;
       state.role = keepLoggedIn ? currentRole : "SOC Analyst";
+      state.playerKnowledge = { initialFacts: [], unknowns: [] };
+      state.runtimeHypotheses = [];
+      state.runtimeIocs = [];
+      state.runtimeAssets = [];
+      state.runtimeServices = [];
+      state.runtimeTasks = [];
+      state.hypothesisOverrides = {};
+      state.siemQuery = "search src_ip=\"198.51.100.24\"";
+      state.siemResults = null;
+      state.selectedSiemEventId = null;
+      state.evidenceRecords = {};
+      state.customHypotheses = [];
+      state.notificationHistory = [];
       state.answeredMessages = {};
       state.selectedEvidence = {};
       state.collectedEvidence = {};
@@ -3774,7 +4366,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       state.loss = 0;
       state.history = [];
       state.actionTimeline = [
-        { time: "09:12", actor: "System", action: "WAF alert received for customer-portal-prod" }
+        { time: "09:12", actor: "System", action: `${state.scenarioTitle || "Scenario"} initialized` }
       ];
       state.evidenceNotes = {};
       state.commanderAccepted = false;
@@ -3800,6 +4392,7 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       state.legalDecisionRecorded = false;
       state.legalClockStartedAt = null;
       state.legalComms = {};
+      initializeScenarioRuntime();
       if (els.pauseSimulationBtn) els.pauseSimulationBtn.textContent = "Pause simulation";
       if (els.demoSpeedSelect) els.demoSpeedSelect.value = "1";
       els.report.className = "panel report";
@@ -3808,6 +4401,10 @@ ${state.appsecRootCauseConfirmed ? "ROOT CAUSE CONFIRMED: dynamic SQL constructi
       renderLogin();
       renderRoles();
       renderComms();
+      renderScenarioSelection();
+      renderSiem();
+      renderHypotheses();
+      renderAssetsAndTasks();
       renderReportBuilder();
       showPage(keepLoggedIn ? "warroom" : "roles");
     }
@@ -4538,11 +5135,43 @@ Finding: user-controlled input reaches SQL execution without parameterization.</
       logAction(state.paused ? "Simulation paused for demo" : "Simulation resumed");
       toast(state.paused ? "Simulation paused" : "Simulation resumed", state.paused ? "Incident clock and attacker movement are stopped." : `Demo speed ${state.demoSpeed}x active.`);
     });
+    if (els.saveExerciseBtn) els.saveExerciseBtn.addEventListener("click", () => saveExerciseState(true));
+    if (els.resumeExerciseBtn) els.resumeExerciseBtn.addEventListener("click", resumeExerciseState);
     els.demoSpeedSelect.addEventListener("change", () => {
       state.demoSpeed = Number(els.demoSpeedSelect.value);
       logAction(`Demo speed changed to ${state.demoSpeed}x`);
       toast("Demo speed updated", `Incident pacing is now ${state.demoSpeed}x.`);
     });
+    if (els.scenarioDifficulty) els.scenarioDifficulty.addEventListener("change", () => {
+      state.difficulty = els.scenarioDifficulty.value;
+      state.siemResults = null;
+      if (!state.scenarioStarted) initializeScenarioRuntime();
+      renderScenarioSelection();
+    });
+    if (els.siemQueryForm) els.siemQueryForm.addEventListener("submit", event => {
+      event.preventDefault();
+      runSiemQuery(els.siemQueryInput.value);
+    });
+    if (els.addHypothesisBtn) els.addHypothesisBtn.addEventListener("click", addCustomHypothesis);
+    if (els.newHypothesisTitle) els.newHypothesisTitle.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addCustomHypothesis();
+      }
+    });
+    if (els.socCommandRun && els.socCommandInput) {
+      els.socCommandRun.addEventListener("click", () => {
+        runSocCommand(els.socCommandInput.value);
+        els.socCommandInput.value = "";
+      });
+      els.socCommandInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          runSocCommand(els.socCommandInput.value);
+          els.socCommandInput.value = "";
+        }
+      });
+    }
     els.contextMenu.querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
       const action = button.dataset.contextAction;
       if (action === "evidence") collectEvidence(state.contextEvidenceId);
@@ -4577,6 +5206,12 @@ Finding: user-controlled input reaches SQL execution without parameterization.</
       ".tool-step",
       ".ready-row",
       ".log-row",
+      ".scenario-card",
+      ".asset-state-card",
+      ".hypothesis-card",
+      ".service-row",
+      ".task-row",
+      ".query-chip",
       ".status-light",
       ".heat-row",
       ".inbox-alert",
@@ -4683,6 +5318,13 @@ Finding: user-controlled input reaches SQL execution without parameterization.</
       cards.forEach(card => observer.observe(card));
     }
 
+    initializeScenarioRuntime();
+    if (simulationTools.loadCatalog) {
+      simulationTools.loadCatalog().then(catalog => {
+        scenarioCatalog = catalog;
+        renderScenarioSelection();
+      });
+    }
     restoreSavedSession();
     renderPhase();
     renderLogin();
@@ -4697,11 +5339,15 @@ Finding: user-controlled input reaches SQL execution without parameterization.</
     renderReportBuilder();
     renderSocInbox();
     renderKillGame();
+    renderScenarioSelection();
+    renderSiem();
+    renderHypotheses();
+    renderAssetsAndTasks();
     renderAppSec();
     renderLegal();
     renderApprovals();
     renderRecentActions();
-    if (state.loggedIn) showPage("warroom");
+    if (state.loggedIn) showPage(state.scenarioStarted ? "warroom" : "scenarios");
     initInteractiveCards();
     initLandingMotion();
     requestAnimationFrame(drawMap);

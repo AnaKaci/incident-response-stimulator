@@ -1,0 +1,16 @@
+{
+  "id": "supply-chain-compromise",
+  "title": "Supply Chain Compromise",
+  "description": "A package update introduced anomalous build behavior and production API calls.",
+  "difficulty": "Expert",
+  "category": "Software Supply Chain",
+  "complexity": "multi-team expert exercise",
+  "environment": "CI/CD, package registry, production API",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "AppSec Engineer", "Legal/Compliance"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": true,
+    "persistenceEstablished": true,
+    "attackerIPs": ["203.0.113.77", "198.51.100.82"]
+  }
+}

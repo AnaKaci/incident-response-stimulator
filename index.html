@@ -44,9 +44,13 @@
     <section class="panel login-panel" id="loginPanel"></section>
 
     <nav class="app-nav" aria-label="Simulator views">
+      <button class="nav-btn" type="button" data-page="scenarios" id="scenarioNavBtn">Scenarios</button>
       <button class="nav-btn active" type="button" data-page="warroom" id="warRoomNavBtn">Dashboard</button>
       <button class="nav-btn" type="button" data-page="wafalert" id="wafAlertNavBtn">WAF Alert</button>
       <button class="nav-btn" type="button" data-page="inbox" id="inboxNavBtn">SOC Inbox</button>
+      <button class="nav-btn" type="button" data-page="siem" id="siemNavBtn">SIEM</button>
+      <button class="nav-btn" type="button" data-page="hypotheses" id="hypothesesNavBtn">Hypotheses</button>
+      <button class="nav-btn" type="button" data-page="assets" id="assetsNavBtn">Assets</button>
       <button class="nav-btn" type="button" data-page="killlab">Kill Chain Lab</button>
       <button class="nav-btn" type="button" data-page="appsec">AppSec</button>
       <button class="nav-btn" type="button" data-page="legal">Legal</button>
@@ -70,6 +74,8 @@
       <div><span class="small">Attacker stage</span><div class="attacker-stage" id="attackerStage">RECON</div></div>
       <div class="sim-controls" aria-label="Simulation controls">
         <button class="btn ghost" id="pauseSimulationBtn" type="button">Pause simulation</button>
+        <button class="btn ghost" id="saveExerciseBtn" type="button">Save exercise</button>
+        <button class="btn ghost" id="resumeExerciseBtn" type="button">Resume saved</button>
         <select id="demoSpeedSelect" aria-label="Demo speed">
           <option value="0.5">Demo speed 0.5x</option>
           <option value="1" selected>Demo speed 1x</option>
@@ -108,6 +114,27 @@
           </section>
         </div>
 
+        <div class="page-section" data-page-section="scenarios">
+          <section class="panel simulation-card">
+            <div class="scenario-head">
+              <div>
+                <h2>Scenario Selection</h2>
+                <p class="small">Choose the incident and difficulty before starting the exercise. Ground truth remains hidden from responder workspaces.</p>
+              </div>
+              <div class="scenario-controls">
+                <label class="small" for="scenarioDifficulty">Difficulty</label>
+                <select id="scenarioDifficulty" aria-label="Exercise difficulty">
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate" selected>Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                  <option value="Expert">Expert</option>
+                </select>
+              </div>
+            </div>
+            <div class="scenario-grid" id="scenarioCatalog"></div>
+          </section>
+        </div>
+
         <div class="page-section active" data-page-section="warroom">
         <div data-role-partial="incidentCommander:warroom"></div>
         <div data-role-partial="appsecEngineer:warroom"></div>
@@ -118,6 +145,74 @@
           </div>
           <div class="objective-actions" id="objectiveActions"></div>
         </section>
+        </div>
+
+        <div class="page-section" data-page-section="siem">
+          <section class="panel simulation-card">
+            <div class="siem-head">
+              <div>
+                <h2>Mini SIEM</h2>
+                <p class="small">Search scenario telemetry, pivot on indicators, and collect evidence from discovered events.</p>
+              </div>
+              <span class="session-badge" id="siemTelemetryCount">Telemetry loading</span>
+            </div>
+            <form class="siem-query-row" id="siemQueryForm">
+              <input id="siemQueryInput" type="text" autocomplete="off" spellcheck="false" aria-label="SIEM query" value="search src_ip=&quot;198.51.100.24&quot;">
+              <button class="btn primary" type="submit">Run query</button>
+            </form>
+            <div class="query-examples" id="queryExamples"></div>
+            <div class="siem-summary" id="siemSummary"></div>
+            <div class="siem-table-wrap">
+              <table class="siem-table" id="siemTable"></table>
+            </div>
+          </section>
+        </div>
+
+        <div class="page-section" data-page-section="hypotheses">
+          <section class="panel simulation-card">
+            <div class="siem-head">
+              <div>
+                <h2>Incident Hypotheses</h2>
+                <p class="small">Track what is confirmed, likely, possible, unknown, or rejected based on collected evidence.</p>
+              </div>
+              <span class="session-badge" id="knowledgeBadge">Player knowledge</span>
+            </div>
+            <div class="hypothesis-grid" id="hypothesisGrid"></div>
+            <div class="workspace-card">
+              <h3>Create hypothesis</h3>
+              <div class="hypothesis-form">
+                <input id="newHypothesisTitle" type="text" placeholder="Example: Persistence is still active">
+                <button class="btn primary" id="addHypothesisBtn" type="button">Add hypothesis</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="page-section" data-page-section="assets">
+          <section class="panel simulation-card">
+            <div class="siem-head">
+              <div>
+                <h2>Assets, Services, and Tasks</h2>
+                <p class="small">Containment changes simulated systems. Balance security, availability, business impact, and evidence preservation.</p>
+              </div>
+              <span class="session-badge" id="assetScenarioBadge">Environment state</span>
+            </div>
+            <div class="workspace-grid">
+              <div class="workspace-card">
+                <h3>Service Health</h3>
+                <div class="service-health-grid" id="serviceHealthGrid"></div>
+              </div>
+              <div class="workspace-card">
+                <h3>Containment Actions</h3>
+                <div class="tool-chain" id="containmentActionGrid"></div>
+              </div>
+            </div>
+            <div class="asset-grid" id="assetStateGrid"></div>
+            <div class="workspace-card">
+              <h3>Incident Tasks</h3>
+              <div class="task-list" id="incidentTaskList"></div>
+            </div>
+          </section>
         </div>
 
         <div class="page-section" data-page-section="ai">
@@ -299,6 +394,7 @@
       <button type="button" data-context-action="escalate">Escalate</button>
     </div>
   </div>
+  <script src="scenario-engine.js"></script>
   <script src="roles/soc-analyst.js"></script>
   <script src="roles/incident-commander.js"></script>
   <script src="roles/appsec-engineer.js"></script>

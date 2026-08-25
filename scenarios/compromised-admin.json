@@ -1,0 +1,16 @@
+{
+  "id": "business-email-compromise",
+  "title": "Business Email Compromise",
+  "description": "Finance received a payment-change request after suspicious executive mailbox rules appeared.",
+  "difficulty": "Intermediate",
+  "category": "Fraud and Identity",
+  "complexity": "cross-functional investigation",
+  "environment": "Mailbox, finance workflow, executive communications",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "Legal/Compliance"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": false,
+    "persistenceEstablished": true,
+    "attackerIPs": ["203.0.113.77", "198.51.100.82"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ransomware-ad",
+  "title": "Ransomware / Active Directory Compromise",
+  "description": "Multiple endpoint detections suggest credential theft, lateral movement, and ransomware staging.",
+  "difficulty": "Advanced",
+  "category": "Endpoint and Identity Compromise",
+  "complexity": "multi-stage investigation",
+  "environment": "Active Directory, workstations, backup server",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "Legal/Compliance"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": true,
+    "persistenceEstablished": true,
+    "attackerIPs": ["203.0.113.77", "198.51.100.82"]
+  }
+}

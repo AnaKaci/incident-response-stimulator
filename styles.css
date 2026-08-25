@@ -2066,6 +2066,248 @@
       color: var(--cyan);
     }
 
+    .scenario-head,
+    .siem-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .scenario-controls {
+      display: grid;
+      gap: 6px;
+      min-width: 180px;
+    }
+
+    .scenario-controls select,
+    .siem-query-row input,
+    .hypothesis-form input,
+    .hypothesis-card select {
+      min-height: 40px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(5, 9, 16, .82);
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+    }
+
+    .scenario-grid,
+    .asset-grid,
+    .hypothesis-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .scenario-card,
+    .asset-state-card,
+    .hypothesis-card {
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(5, 9, 16, .55);
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .scenario-card.active {
+      border-color: rgba(16, 185, 129, .7);
+      background: rgba(16, 185, 129, .08);
+    }
+
+    .scenario-card.reference {
+      box-shadow: inset 0 0 0 1px rgba(16, 185, 129, .16), 0 0 32px rgba(16, 185, 129, .08);
+    }
+
+    .scenario-meta,
+    .knowledge-list,
+    .hypothesis-evidence,
+    .custody-timeline,
+    .task-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .scenario-meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .meta-chip,
+    .knowledge-item,
+    .custody-line,
+    .task-row,
+    .service-row {
+      border: 1px solid rgba(148, 163, 184, .14);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .025);
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .meta-chip b,
+    .task-row b,
+    .service-row b {
+      color: var(--text);
+    }
+
+    .siem-query-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .query-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .query-chip {
+      border: 1px solid rgba(16, 185, 129, .28);
+      border-radius: 999px;
+      background: rgba(16, 185, 129, .07);
+      color: var(--muted);
+      padding: 6px 9px;
+      font: 12px/1 Consolas, "Liberation Mono", monospace;
+      cursor: pointer;
+    }
+
+    .siem-summary {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .siem-table-wrap {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid rgba(16, 185, 129, .18);
+      border-radius: 8px;
+      background: rgba(3, 7, 13, .72);
+    }
+
+    .siem-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font: 12px/1.45 Consolas, "Liberation Mono", monospace;
+    }
+
+    .siem-table th,
+    .siem-table td {
+      border-bottom: 1px solid rgba(148, 163, 184, .12);
+      padding: 8px 9px;
+      text-align: left;
+      vertical-align: top;
+      color: var(--muted);
+    }
+
+    .siem-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--green);
+      background: #03070d;
+      font-weight: 800;
+    }
+
+    .pivot-link {
+      border: 0;
+      padding: 0;
+      color: #D1FAE5;
+      background: transparent;
+      font: inherit;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .hypothesis-card.confirmed {
+      border-color: rgba(16, 185, 129, .56);
+    }
+
+    .hypothesis-card.rejected,
+    .hypothesis-card.unlikely {
+      border-color: rgba(248, 113, 113, .32);
+      opacity: .82;
+    }
+
+    .confidence-meter {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      overflow: hidden;
+    }
+
+    .confidence-meter span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--yellow), var(--green));
+    }
+
+    .hypothesis-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .service-health-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .service-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .service-bar {
+      grid-column: 1 / -1;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      overflow: hidden;
+    }
+
+    .service-bar span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), var(--yellow), var(--green));
+    }
+
+    .asset-state-card .status-badge,
+    .hypothesis-card .status-badge {
+      width: max-content;
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .task-actions,
+    .custody-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .custody-timeline {
+      margin-top: 6px;
+    }
+
     .login-panel {
       margin-bottom: 14px;
       padding: 16px;
@@ -4007,6 +4249,130 @@
       line-height: 1.58;
     }
 
+    /* Scoped card spacing polish. Keeps the SOC aesthetic compact without cramped headers. */
+    body.is-logged-in .scenario-card,
+    body.is-logged-in .asset-state-card,
+    body.is-logged-in .hypothesis-card,
+    body.is-logged-in .workspace-card,
+    body.is-logged-in .command-card {
+      padding: 18px 20px;
+    }
+
+    body.is-logged-in .scenario-card {
+      gap: 16px;
+      align-content: start;
+    }
+
+    .scenario-card > div:first-child {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .scenario-card > div:first-child .status-badge {
+      margin-bottom: 2px;
+      justify-self: start;
+    }
+
+    .scenario-card > div:first-child h3 {
+      line-height: 1.15;
+    }
+
+    .scenario-meta {
+      gap: 10px;
+    }
+
+    .scenario-meta .meta-chip {
+      display: grid;
+      gap: 3px;
+      padding: 10px 12px;
+    }
+
+    body.is-logged-in .scenario-card > .small {
+      display: block;
+      line-height: 1.5;
+    }
+
+    body.is-logged-in .scenario-card > .actions {
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    body.is-logged-in .commander-panel.appsec-only {
+      padding: 20px 24px;
+      gap: 0;
+      align-content: start;
+    }
+
+    .commander-panel.appsec-only > .session-badge {
+      justify-self: start;
+      margin-bottom: 8px;
+    }
+
+    .commander-panel.appsec-only > h2 {
+      margin-bottom: 7px;
+      line-height: 1.12;
+    }
+
+    .commander-panel.appsec-only > p.small {
+      margin-bottom: 20px;
+    }
+
+    .commander-panel.appsec-only > .tradeoff-grid {
+      margin-bottom: 20px;
+    }
+
+    .commander-panel.appsec-only > .actions {
+      gap: 10px;
+      margin-top: 0;
+      align-items: center;
+    }
+
+    body.is-logged-in .current-objective {
+      padding: 18px 20px;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .current-objective > div:first-child {
+      display: grid;
+      gap: 8px;
+    }
+
+    .current-objective h2 {
+      line-height: 1.14;
+    }
+
+    #objectiveText strong {
+      display: block;
+      margin-top: 8px;
+    }
+
+    .objective-progress {
+      gap: 10px;
+      padding: 12px 14px;
+    }
+
+    .objective-step {
+      gap: 10px;
+    }
+
+    .objective-actions {
+      gap: 10px;
+      align-items: center;
+    }
+
+    body.is-logged-in .custody-card {
+      gap: 10px;
+      padding: 12px 14px;
+    }
+
+    body.is-logged-in .custody-actions,
+    body.is-logged-in .task-actions {
+      gap: 10px;
+      align-items: center;
+    }
+
     body.is-logged-in .live-chip::after {
       opacity: .45;
     }
@@ -4106,6 +4472,33 @@
       .choice-grid,
       .report-grid {
         grid-template-columns: 1fr;
+      }
+
+      .scenario-grid,
+      .asset-grid,
+      .hypothesis-grid,
+      .scenario-meta,
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .scenario-head,
+      .siem-head,
+      .siem-query-row,
+      .hypothesis-form,
+      .task-row {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      body.is-logged-in .scenario-card,
+      body.is-logged-in .asset-state-card,
+      body.is-logged-in .hypothesis-card,
+      body.is-logged-in .workspace-card,
+      body.is-logged-in .command-card,
+      body.is-logged-in .current-objective,
+      body.is-logged-in .commander-panel.appsec-only {
+        padding: 16px;
       }
     }
 

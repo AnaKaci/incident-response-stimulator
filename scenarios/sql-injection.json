@@ -1,0 +1,53 @@
+{
+  "id": "sql-injection",
+  "incidentId": "INC-2026-0812",
+  "title": "SQL Injection Data Exposure",
+  "description": "Suspicious activity has been detected against the customer portal after SQL injection payloads reached production.",
+  "difficulty": "Intermediate",
+  "category": "Web Application Compromise",
+  "complexity": "4 phase investigation",
+  "environment": "Customer portal, WAF, web tier, database, IAM, support desk",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "AppSec Engineer", "Legal/Compliance"],
+  "seed": "sql-injection-2026-0812",
+  "initialAlerts": [
+    {
+      "id": "ALERT-WAF-1192",
+      "source": "WAFLogs",
+      "title": "Possible SQL injection",
+      "severity": "HIGH",
+      "asset": "customer-portal-prod",
+      "summary": "UNION SELECT pattern against /customers?id= from 198.51.100.24"
+    }
+  ],
+  "groundTruth": {
+    "successfulExploit": true,
+    "databaseAccessed": true,
+    "recordsQueried": 247,
+    "dataExfiltrated": false,
+    "persistenceEstablished": true,
+    "adminCompromised": false,
+    "attackerIPs": ["198.51.100.24", "203.0.113.18", "192.0.2.44"],
+    "affectedFields": ["name", "email", "phone", "password_hash"]
+  },
+  "playerKnowledge": {
+    "initialFacts": [
+      "Possible SQL injection against customer-portal-prod",
+      "One suspicious source IP is visible",
+      "Database scope is unknown",
+      "External exfiltration is unconfirmed"
+    ],
+    "unknowns": [
+      "Whether the SQLi payload succeeded",
+      "Which data classes were accessed",
+      "Whether data left the environment",
+      "Whether credentials were reused"
+    ]
+  },
+  "objectives": [
+    "Validate the WAF alert with independent telemetry",
+    "Scope database activity without overclaiming exfiltration",
+    "Preserve evidence with hashes and chain of custody",
+    "Coordinate containment with business impact awareness",
+    "Validate remediation and legal conclusions before closure"
+  ]
+}

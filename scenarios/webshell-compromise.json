@@ -1,0 +1,16 @@
+{
+  "id": "webshell-compromise",
+  "title": "Web Shell / Public Server Compromise",
+  "description": "A public server generated suspicious process and outbound network telemetry after a web upload.",
+  "difficulty": "Advanced",
+  "category": "Server Compromise",
+  "complexity": "host and web investigation",
+  "environment": "Linux web server, EDR, proxy, WAF",
+  "availableRoles": ["SOC Analyst", "Incident Commander", "AppSec Engineer"],
+  "groundTruth": {
+    "successfulExploit": true,
+    "dataExfiltrated": false,
+    "persistenceEstablished": true,
+    "attackerIPs": ["203.0.113.77", "198.51.100.82"]
+  }
+}
